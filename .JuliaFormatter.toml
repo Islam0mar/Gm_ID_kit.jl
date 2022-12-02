@@ -1,0 +1,15 @@
+indent = 2
+margin = 80
+whitespace_ops_in_indices = true
+whitespace_typedefs = true
+remove_extra_newlines = true
+long_to_short_function_def = true
+always_use_return = true
+annotate_untyped_fields_with_any = true
+format_docstrings = true
+conditional_to_if = true
+trailing_comma = false
+indent_submodule = true
+separate_kwargs_with_semicolon = true
+for_in_replacement = true
+format_markdown = true
