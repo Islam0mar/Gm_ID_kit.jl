@@ -20,4 +20,5 @@ To be used with [JuMP](https://github.com/jump-dev/JuMP.jl).
 
 ## Copyright
 Copyright (c) 2019 Boris Murmann (murmann@stanford.edu)
+
 Copyright (c) 2022 Islam Omar (io1131@fayoum.edu.eg)
