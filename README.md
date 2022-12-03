@@ -19,8 +19,8 @@ To be used with [JuMP](https://github.com/jump-dev/JuMP.jl).
  - [ ] Get rid of allocations
 
 ## Copyright
-Copyright (c) 2019 Boris Murmann (murmann@stanford.edu)
+Original MATLAB code: Copyright (c) 2019 Boris Murmann (murmann@stanford.edu)
 
-Test example is taken from `Analog/Mixed-Signal Simulation and Modeling` `Lab 04` Copyright (c) 2022 Dr. Hesham Omran (Hesham.omran@eng.asu.edu.eg) 
+Test example is taken from `Analog/Mixed-Signal Simulation and Modeling` `Lab 04`: Copyright (c) 2022 Dr. Hesham Omran (Hesham.omran@eng.asu.edu.eg) 
 
 Copyright (c) 2022 Islam Omar (io1131@fayoum.edu.eg)
