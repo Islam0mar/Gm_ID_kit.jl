@@ -13,6 +13,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 UnitJuMP = "bcad6099-3893-4a89-b8e7-2c92a19b03be"
 
 [compat]
+NLopt = "0.6"
 UnitJuMP = "0.1"
 MAT = "0.10"
 JuMP = "1"
