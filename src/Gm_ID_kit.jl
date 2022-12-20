@@ -2,6 +2,7 @@ module Gm_ID_kit
 
 using MAT
 using Interpolations
+using StaticArrays
 
 export ParseMAT
 function ParseMAT(file_name::AbstractString, key_name::AbstractString)
@@ -13,20 +14,157 @@ end
 # (1) Simple lookup of parameters at some given (L, VGS, VDS, VSB)
 # (2) Lookup of arbitrary ratios of parameters, e.g. GM_ID, GM_CGG at given (L, VGS, VDS, VSB)
 # (3) Cross-lookup of one ratio against another, e.g. GM_CGG for some GM_ID
+function LookUp1(
+    dict::AbstractDict{String,T},
+    out_var::AbstractString,
+    L::SVector{N_L,Td},
+    VGS::SVector{N_VGS,Td},
+    VDS::SVector{N_VDS,Td},
+    VSB::SVector{N_VSB,Td},
+) where {T,Td<:Real,N_L,N_VGS,N_VDS,N_VSB}
+    # simple interpolation in mode 1
+    data = dict[out_var]
+    nodes = (vec(dict["L"]), vec(dict["VGS"]), vec(dict["VDS"]), vec(dict["VSB"]))
+    A = data
+    return interpolate(nodes, A, Gridded(Linear()))[L, VGS, VDS, VSB]
+end
+
+function LookUp2(
+    dict::AbstractDict{String,T},
+    out_var_numerator::AbstractString,
+    out_var_denominator::AbstractString,
+    L::SVector{N_L,Td},
+    VGS::SVector{N_VGS,Td},
+    VDS::SVector{N_VDS,Td},
+    VSB::SVector{N_VSB,Td},
+) where {T,Td<:Real,N_L,N_VGS,N_VDS,N_VSB}
+    # simple interpolation in mode 2
+    data = dict[out_var_numerator] ./ dict[out_var_denominator]
+    nodes = (vec(dict["L"]), vec(dict["VGS"]), vec(dict["VDS"]), vec(dict["VSB"]))
+    A = data
+    return interpolate(nodes, A, Gridded(Linear()))[L, VGS, VDS, VSB]
+end
+
+function LookUp3(
+    dict::AbstractDict{String,T},
+    out_var_numerator::AbstractString,
+    out_var_denominator::AbstractString,
+    in_var_numerator::AbstractString,
+    in_var_denominator::AbstractString,
+    in_desired::SVector{N_in,Td},
+    L::SVector{N_L,Td},
+    VGS::SVector{N_VGS,Td},
+    VDS::SVector{N_VDS,Td},
+    VSB::SVector{N_VSB,Td},
+    Warning::Bool,
+) where {T,Td<:Real,N_in,N_L,N_VGS,N_VDS,N_VSB}
+    # interpolation in mode 3
+    out_data = dict[out_var_numerator] ./ dict[out_var_denominator]
+    in_data = dict[in_var_numerator] ./ dict[in_var_denominator]
+    # assemble x and y data, then find y values at desired x
+    nodes = (vec(dict["L"]), vec(dict["VGS"]), vec(dict["VDS"]), vec(dict["VSB"]))
+    A = in_data
+    in = interpolate(nodes, A, Gridded(Linear()))[L, VGS, VDS, VSB]
+
+    A = out_data
+    out = interpolate(nodes, A, Gridded(Linear()))[L, VGS, VDS, VSB]
+
+
+    # permute so that VGS dimension always comes first
+    # NOTE: swaped their indices instead
+    # dropdims(in; dims = (1, 4))
+    # dropdims(out; dims = (3, 4))
+
+    dim = size(in)
+    in = reshape(in, (dim[1], dim[2]))
+    dim = size(out)
+    out = reshape(out, (dim[1], dim[2]))
+
+    dim = size(in)
+    output = zeros(dim[1], length(in_desired))
+
+    for i = 1:dim[1]
+        for j = 1:length(in_desired)
+            m, idx = findmax(in[i, :])
+            if maximum(in_desired[j]) > m && Warning
+                @warn(
+                    "look_up warning: $(in_var_numerator)/$(in_var_denominator) input larger than maximum! (output is NaN)"
+                )
+            end
+            # If gm/ID is the input value, find maximum and limit search range to VGS values to the RIGHT
+            if in_var_numerator == "GM" && in_var_denominator == "ID"
+                in_right = in[i, idx:end]
+                out_right = out[i, idx:end]
+                output[i, j] = extrapolate(
+                    interpolate(
+                        reverse!(in_right),
+                        reverse!(out_right),
+                        FritschButlandMonotonicInterpolation(),
+                    ),
+                    NaN,
+                )[in_desired[j]]
+
+                # If gm/Cgg of gm/Cgs is the input value, find maximum and limit search range to VGS values to the LEFT
+            elseif in_var_numerator == "GM" &&
+                   (in_var_denominator == "CGG" || in_var_denominator == "CGS")
+                in_left = in[i, 1:idx]
+                out_left = out[i, 1:idx]
+
+                output[i, j] = extrapolate(
+                    interpolate(
+                        reverse!(in_left),
+                        reverse!(out_left),
+                        FritschButlandMonotonicInterpolation(),
+                    ),
+                    NaN,
+                )[in_desired[j]]
+
+            else
+                crossings = length(
+                    findall(diff(sign(in(i, :) - in_desired(j) + eps(Float64))) .!= 0),
+                )
+                if crossings > 1
+                    output = []
+                    error(
+                        "*** look_up: Error! There are multiple curve intersections.\n*** Try to reduce the search range by specifying the VGS vector explicitly.\n*** Example: look_up(nch, ID_W M_GDS gm_gds, GS nch[VGS][10:end])",
+                    )
+                    # TODO:
+                    # disp(""
+                    # figure(1000)
+                    # plot(1:length(x(:,i)), x(:,i), "x" 1:length(x(:,i)), ones(1, length(x(:,i)))*xdesired(j));
+                    return output
+                end
+                k = in[i, :]
+                l = out[i, :]
+
+                output[i, j] = extrapolate(
+                    interpolate(
+                        reverse!(k),
+                        reverse!(l),
+                        FritschButlandMonotonicInterpolation(),
+                    ),
+                    NaN,
+                )[in_desired[j]]
+            end
+        end
+    end
+    return output
+end
+
 export LookUp
 function LookUp(
-    data::Dict{String,Any},
-    out_var::String,
-    in_var::String = "",
-    in_val = 0;
+    data::AbstractDict{String,T},
+    out_var::AbstractString,
+    in_var::AbstractString = "",
+    in_val = 0.0;
     # default values for parameters
     L = minimum(data["L"]),
-    VGS = vec(data["VGS"]),
-    VDS = maximum(data["VDS"]) / 2,
-    VSB = 0,
+    VGS = data["VGS"],
+    VDS = maximum(data["VDS"]) / 2.0,
+    VSB = 0.0,
     # TODO: add # Method = "pchip",
     Warning = true,
-)
+) where {T}
 
     # check if desired output is a ratio of two parameters
     out_ratio = !isnothing(findfirst('_', out_var))
@@ -44,129 +182,48 @@ function LookUp(
         error("Invalid syntax or usage mode!")
     end
 
-    # output is a ratio in modes 2 and 3
-    if mode == 2 || mode == 3
-        numerator, denominator = split(out_var, '_', limit = 2, keepempty = false)
-        ydata = data[numerator] ./ data[denominator]
-    else
-        # simple output in mode 1
-        ydata = data[out_var]
-    end
-
     # input is a ratio in mode 3
     if mode == 3
-        numerator, denominator = split(in_var, '_', limit = 2, keepempty = false)
-        xdata = data[numerator] ./ data[denominator]
-        xdesired = in_val
-        # assemble x and y data, then find y values at desired x
-        nodes = (vec(data["L"]), vec(data["VGS"]), vec(data["VDS"]), vec(data["VSB"]))
-        A = xdata
-        x = interpolate(nodes, A, Gridded(Linear()))[L, VGS, VDS, VSB]
-
-        A = ydata
-        y = interpolate(nodes, A, Gridded(Linear()))[L, VGS, VDS, VSB]
-
-        # NOTE: not needed
-        # permute so that VGS dimension always comes first
-        # permutedims!(x, x, [2 1 3 4])
-        # permutedims!(y, y, [2 1 3 4])
-        # dropdims
-        # squeez to get rid of 1-dims
-        # return x
-        if length(size(L)) == 0 # equivalent
-            x = x'
-            y = y'
-        end
-
-        dim = size(x)
-        output = zeros(dim[1], length(xdesired))
-
-        for i = 1:dim[1]
-            for j = 1:length(xdesired)
-                m, idx = findmax(x[i, :])
-                if maximum(xdesired[j]) > m && Warning
-                    @warn(
-                        "look_up warning: $in_var input larger than maximum! (output is NaN)"
-                    )
-                end
-                # If gm/ID is the x value, find maximum and limit search range to VGS values to the RIGHT
-                if in_var == "GM_ID"
-                    x_right = x[i, idx:end]
-                    y_right = y[i, idx:end]
-                    output[i, j] = extrapolate(
-                        interpolate(
-                            reverse!(x_right),
-                            reverse!(y_right),
-                            FritschButlandMonotonicInterpolation(),
-                        ),
-                        NaN,
-                    )[xdesired[j]]
-
-                    # If gm/Cgg of gm/Cgs is the x value, find maximum and limit search range to VGS values to the LEFT
-                elseif numerator == "GM" && (denominator == "CGG" || denominator == "CGS")
-                    x_left = x[i, 1:idx]
-                    y_left = y[i, 1:idx]
-
-                    output[i, j] = extrapolate(
-                        interpolate(
-                            reverse!(x_left),
-                            reverse!(y_left),
-                            FritschButlandMonotonicInterpolation(),
-                        ),
-                        NaN,
-                    )[xdesired[j]]
-
-                else
-                    crossings = length(
-                        findall(diff(sign(x(i, :) - xdesired(j) + eps(Float64))) .!= 0),
-                    )
-                    if crossings > 1
-                        output = []
-                        error(
-                            "*** look_up: Error! There are multiple curve intersections.\n*** Try to reduce the search range by specifying the VGS vector explicitly.\n*** Example: look_up(nch, ID_W M_GDS gm_gds, GS nch[VGS][10:end])",
-                        )
-                        # TODO:
-                        # disp(""
-                        # figure(1000)
-                        # plot(1:length(x(:,i)), x(:,i), "x" 1:length(x(:,i)), ones(1, length(x(:,i)))*xdesired(j));
-                        return output
-                    end
-                    k = x[i, :]
-                    l = y[i, :]
-
-                    output[i, j] = extrapolate(
-                        interpolate(
-                            reverse!(k),
-                            reverse!(l),
-                            FritschButlandMonotonicInterpolation(),
-                        ),
-                        NaN,
-                    )[xdesired[j]]
-                end
-            end
-        end
+        out_numerator, out_denominator = split(out_var, '_', limit = 2, keepempty = false)
+        in_numerator, in_denominator = split(in_var, '_', limit = 2, keepempty = false)
+        return LookUp3(
+            data,
+            out_numerator,
+            out_denominator,
+            in_numerator,
+            in_denominator,
+            SVector(in_val...),
+            SVector(L...),
+            SVector(VGS...),
+            SVector(VDS...),
+            SVector(VSB...),
+            Warning,
+        )
+    elseif mode == 2
+        out_numerator, out_denominator = split(out_var, '_', limit = 2, keepempty = false)
+        output = LookUp2(
+            data,
+            out_numerator,
+            out_denominator,
+            SVector(L...),
+            SVector(VGS...),
+            SVector(VDS...),
+            SVector(VSB...),
+        )
     else
-        # simple interpolation in modes 1 and 2
-        if length(data["VSB"]) > 1
-            nodes = (vec(data["L"]), vec(data["VGS"]), vec(data["VDS"]), vec(data["VSB"]))
-            A = ydata
-            output = interpolate(nodes, A, Gridded(Linear()))[L, VGS, VDS, VSB]
-        else
-            nodes = (vec(data["L"]), vec(data["VGS"]), vec(data["VDS"]), vec(data["VSB"]))
-            A = ydata
-            output = interpolate(nodes, A, Gridded(Linear()))[L, VGS, VDS, VSB]
-        end
+        output = LookUp1(
+            data,
+            out_var,
+            SVector(L...),
+            SVector(VGS...),
+            SVector(VDS...),
+            SVector(VSB...),
+        )
     end
 
-    # Force column vector to matrix if the output is one dimensional
-    if length(size(output)) == 1
-        output = reshape(output, :, 1)
-    end
-    # Force converting one element to a number
-    if length(output) == 1
-        output = output[1]
-    end
-
+    # FIXME: assume that only two vectors will coexist
+    dim = size(output)
+    output = reshape(output, (dim[1], dim[2]))
     return output
 end
 
@@ -182,9 +239,9 @@ function LookUpVGS(
     VGB = NaN,
     GM_ID = NaN,
     ID_W = NaN,
-    VDS = maximum(data["VDS"]) / 2,
+    VDS = maximum(data["VDS"]) / 2.0,
     VDB = NaN,
-    VSB = 0,
+    VSB = 0.0,
     # TODO: add # Method = "pchip",
 )
     # determine usage mode
@@ -234,10 +291,7 @@ function LookUpVGS(
         VGS = VGS[idx]
     end
 
-    # Permutation needed if L is passed as a vector
-    if length(L) > 1
-        permute!(ratio, [2, 1])
-    end
+    ratio = permutedims(ratio, [2, 1])
 
     # Interpolation loop
     s = size(ratio)

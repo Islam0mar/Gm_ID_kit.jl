@@ -7,29 +7,29 @@ using Test
     pch = ParseMAT(joinpath(dirname(pathof(Gm_ID_kit)), "..", "test", "180pch.mat"), "pch")
 
     # mode 1
-    ID = LookUp(nch, "ID"; VGS = 0.6, L = 0.28)
+    ID = LookUp(nch, "ID"; VGS = 0.6, L = 0.28)[1]
     @test ID ≈ 4.1232e-05 atol = 0.0001e-05
-    ID = LookUp(pch, "ID"; VGS = 0.6, L = 0.28)
+    ID = LookUp(pch, "ID"; VGS = 0.6, L = 0.28)[1]
     @test ID ≈ 1.5505e-05 atol = 0.0001e-05
-    CGG = LookUp(nch, "CGG"; VGS = 0.6, L = 0.28)
+    CGG = LookUp(nch, "CGG"; VGS = 0.6, L = 0.28)[1]
     @test CGG ≈ 1.3625e-14 atol = 0.0001e-14
-    CDD = LookUp(nch, "CDD"; VGS = 0.6, L = 0.28)
+    CDD = LookUp(nch, "CDD"; VGS = 0.6, L = 0.28)[1]
     @test CDD ≈ 6.0872e-15 atol = 0.0001e-15
 
     # mode 2
-    GM_CGG = LookUp(nch, "GM_CGG"; VGS = 0.6, L = 0.28)
+    GM_CGG = LookUp(nch, "GM_CGG"; VGS = 0.6, L = 0.28)[1]
     @test GM_CGG ≈ 4.2808e10 atol = 0.0001e10
-    GM_ID = LookUp(nch, "GM_ID"; VGS = 0.6, L = 0.28)
+    GM_ID = LookUp(nch, "GM_ID"; VGS = 0.6, L = 0.28)[1]
     @test GM_ID ≈ 14.1456 atol = 0.0001
 
     # mode 3
-    GM_CDD = LookUp(nch, "GM_CDD", "GM_ID", 15; VDS = 0.6, L = 0.28)
+    GM_CDD = LookUp(nch, "GM_CDD", "GM_ID", 15.0; VDS = 0.6, L = 0.28)[1]
     @test GM_CDD ≈ 8.2656e10 atol = 0.0001e10
-    GM_CDD = LookUp(pch, "GM_CDD", "GM_ID", 10; VDS = 0.6, L = 1.7)
+    GM_CDD = LookUp(pch, "GM_CDD", "GM_ID", 10.0; VDS = 0.6, L = 1.7)[1]
     @test GM_CDD ≈ 4.4941e09 atol = 0.0001e09
-    GM_CGG = LookUp(nch, "GM_CGG", "GM_ID", 10; VDS = 0.6, L = 1.7)
+    GM_CGG = LookUp(nch, "GM_CGG", "GM_ID", 10.0; VDS = 0.6, L = 1.7)[1]
     @test GM_CGG ≈ 2.1313e09 atol = 0.0001e09
-    GM_CGG = LookUp(pch, "GM_CGG", "GM_ID", 10; VDS = 0.6, L = 1.7)
+    GM_CGG = LookUp(pch, "GM_CGG", "GM_ID", 10.0; VDS = 0.6, L = 1.7)[1]
     @test GM_CGG ≈ 5.3293e08 atol = 0.0001e08
 end
 
@@ -66,10 +66,10 @@ end
     # Get the gm/gds values vector corresponding to the L_vector
     gm_gds_vector = LookUp(nch, "GM_GDS", "GM_ID", M1.GM_ID; VDS = M1.VDS, L = L)
     # Get the minimum L that gives gm/gds > the given value
-    # add line to get the minimum L for M1 that gives gm/gds >= M1.gm_gds 
+    # add line to get the minimum L for M1 that gives gm/gds >= M1.gm_gds
     M1.L = L[findfirst(x -> x > M1.GM_GDS, gm_gds_vector)]
     # Get the current by computing the ID/W and then multiply it by W\
-    M1.ID_W = LookUp(nch, "ID_W", "GM_ID", M1.GM_ID; VDS = M1.VDS, L = M1.L)
+    M1.ID_W = LookUp(nch, "ID_W", "GM_ID", M1.GM_ID; VDS = M1.VDS, L = M1.L)[1]
     # add line to get the current of M1
     M1.ID = M1.ID_W * M1.W
     # Get the VGS value

@@ -11,6 +11,7 @@ Port from [Gm/ID Starter Kit](https://web.stanford.edu/~murmann/gmid)
 To be used with [JuMP](https://github.com/jump-dev/JuMP.jl).
 
 ## TODO
+ - [ ] Refactor `LookUp,LookUpVGS` + unittest
  - [ ] use Julia naming conventions
  - [ ] Optimization with JuMP
  - [ ] Extract LUTs from spice simulators
