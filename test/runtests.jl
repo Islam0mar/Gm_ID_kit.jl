@@ -33,6 +33,21 @@ using Test
     @test GM_CGG ≈ 5.3293e08 atol = 0.0001e08
 end
 
+@testset "LookUpVGS test" begin
+    nch = ParseMAT(joinpath(dirname(pathof(Gm_ID_kit)), "..", "test", "180nch.mat"), "nch")
+
+    # mode 1
+    VGS = LookUpVGS(nch; GM_ID = 10, VDS = 0.6, VSB = 0.1, L = 0.18)[1]
+    @test VGS ≈ 0.6968 atol = 0.0001
+
+    VGS = LookUpVGS(nch; ID_W = 1e-4, VDS = 0.6, VSB = 0.1, L = 0.18)[1]
+    @test VGS ≈ 0.8917 atol = 0.0001
+
+    # mode 2
+    VGS = LookUpVGS(nch; GM_ID = 10.0, VDB = 0.6, VGB = 1.0, L = 0.18)[1]
+    @test VGS ≈ 0.7384 atol = 0.0001
+end
+
 @testset "Example test" begin
     nch = ParseMAT(joinpath(dirname(pathof(Gm_ID_kit)), "..", "test", "180nch.mat"), "nch")
     pch = ParseMAT(joinpath(dirname(pathof(Gm_ID_kit)), "..", "test", "180pch.mat"), "pch")
@@ -74,7 +89,7 @@ end
     M1.ID = M1.ID_W * M1.W
     # Get the VGS value
     # add line to get the VGS value of M1
-    M1.VGS = LookUpVGS(nch; GM_ID = M1.GM_ID, VDS = M1.VDS, L = M1.L)
+    M1.VGS = LookUpVGS(nch; GM_ID = M1.GM_ID, VDS = M1.VDS, L = M1.L)[1]
     @test M1.VGS ≈ 0.67 atol = 0.01
     @test M1.ID ≈ 9.52e-05 atol = 0.01e-05
 end
