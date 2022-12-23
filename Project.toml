@@ -4,21 +4,25 @@ authors = ["islam omar ahmed <io1131@fayoum.edu.eg> and contributors"]
 version = "0.1.0"
 
 [deps]
+Debugger = "31a5f54b-26ea-5ae9-a837-f05ce5417438"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+JuliaInterpreter = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
+MethodAnalysis = "85b6ec6f-f7df-4429-9514-a64bcd9ee824"
 NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
+PProf = "e4faabce-9ead-11e9-39d9-4379958e3056"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 UnitJuMP = "bcad6099-3893-4a89-b8e7-2c92a19b03be"
 
 [compat]
-NLopt = "0.6"
-UnitJuMP = "0.1"
-MAT = "0.10"
-JuMP = "1"
 Interpolations = "0.14"
+JuMP = "1"
+MAT = "0.10"
+NLopt = "0.6"
 StaticArrays = "1"
+UnitJuMP = "0.1"
 julia = "1.7"
 
 [extras]
