@@ -19,6 +19,7 @@ UnitJuMP = "bcad6099-3893-4a89-b8e7-2c92a19b03be"
 [compat]
 Interpolations = "0.14"
 JuMP = "1"
+JuliaInterpreter = "0.9"
 MAT = "0.10"
 NLopt = "0.6"
 StaticArrays = "1"
