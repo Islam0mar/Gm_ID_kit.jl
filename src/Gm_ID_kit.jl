@@ -41,7 +41,7 @@ function LookUp1(
     data = dict[out_var]
     nodes = (vec(dict["L"]), vec(dict["VGS"]), vec(dict["VDS"]), vec(dict["VSB"]))
     A = data
-    return extrapolate(interpolate(nodes, A, Gridded(Linear())), NaN)[L, VGS, VDS, VSB]
+    return extrapolate(interpolate!(nodes, A, Gridded(Linear())), NaN)[L, VGS, VDS, VSB]
 end
 
 function LookUp2(
@@ -57,7 +57,7 @@ function LookUp2(
     data = dict[out_var_numerator] ./ dict[out_var_denominator]
     nodes = (vec(dict["L"]), vec(dict["VGS"]), vec(dict["VDS"]), vec(dict["VSB"]))
     A = data
-    return extrapolate(interpolate(nodes, A, Gridded(Linear())), NaN)[L, VGS, VDS, VSB]
+    return extrapolate(interpolate!(nodes, A, Gridded(Linear())), NaN)[L, VGS, VDS, VSB]
 end
 
 function LookUp3(
@@ -79,10 +79,10 @@ function LookUp3(
     # assemble x and y data, then find y values at desired x
     nodes = (vec(dict["L"]), vec(dict["VGS"]), vec(dict["VDS"]), vec(dict["VSB"]))
     A = in_data
-    in = extrapolate(interpolate(nodes, A, Gridded(Linear())), NaN)[L, VGS, VDS, VSB]
+    in = extrapolate(interpolate!(nodes, A, Gridded(Linear())), NaN)[L, VGS, VDS, VSB]
 
     A = out_data
-    out = extrapolate(interpolate(nodes, A, Gridded(Linear())), NaN)[L, VGS, VDS, VSB]
+    out = extrapolate(interpolate!(nodes, A, Gridded(Linear())), NaN)[L, VGS, VDS, VSB]
 
     dim = size(in)
     # dim[2] = VGS which is used while searching
